@@ -1,0 +1,15 @@
+{
+  "name": "showGraph",
+  "version": "1.0.0",
+  "description": "show graph with data on mysql database",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.13.4",
+    "mysql": "^2.10.2"
+  }
+}
