@@ -1,54 +1,270 @@
-<html>
-	<head>
-	</head>
-
-	<body>
-
-<script src="https://code.highcharts.com"></script>
-
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<script src="bower_components/highcharts/highcharts.js"></script>
+<script src="bower_components/highcharts/modules/exporting.js"></script>
 
 <div id="container" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
 
-<script>
-$(function () {
-    $('#container').highcharts({
+<script type="text/javascript">
+
+var _startSerie=[];
+var _startCategories=[];
+var chart;
+
+function loadData(){
+
+	console.log("load data")
+	$.ajax({		
+		//inserire l'url della pagina che restituisce i dati				 
+		url: location.protocol + '//' + location.host + '/service1',
+
+		//inserire eventuali parametri 
+		data:{},
+
+		dataType:"json",
+		context: document.body
+	}).done(function(data) {
+		setData(data);
+	}).fail(function(jqXHR, textStatus, errorThrown){});
+} // end loadData()
+
+$
+
+
+// ------------------------------------
+function setData(data){
+	
+	// inserire i nomi delle colonne della tabella con i dati		
+	var description = "description";
+	var timestamp = "timestamp";
+	var value = "temperature";
+			
+	var _val;	
+	var impianti=[];
+	var categories=[];
+	var impiantiObj=[];
+		
+	//ciclo tutti i dati ricevuti e prendo gli impianti diversi + tutte le date diverse
+	for (_val in data){
+			
+		if(impianti.indexOf(data[_val][description])==-1){ 
+			impianti.push(data[_val][description]); 
+			impiantiObj.push({name:data[_val][description],data:[]});
+		}
+		
+		if(categories.indexOf(data[_val][timestamp])==-1) {
+			categories.push(data[_val][timestamp]);
+		}	
+	}
+			
+	function formatLabel() {
+		var _arr = [];
+		for(var i=0; i<categories.length; i++) { 
+			_arr.push(format(categories[i]));
+		}
+			
+		return _arr;
+	}
+		
+		
+	_startCategories=formatLabel();
+		
+	console.log(_startCategories)
+		
+	//ciclo gli impianti e recupero tutte le temperature	
+	for (var i=0; i<impianti.length; i++) {
+		for (_val in data){
+			if(data[_val][description]==impianti[i]){ 
+				impiantiObj[i].data.push(data[_val][value])
+			}
+		}
+	}
+		
+	//se è la prima chiamata, creo un obj per la chart e chiamo il setup
+	if(chart==undefined){
+		
+		for (var i=0; i<impianti.length; i++) {
+			_startSerie.push( {name:impianti[i], data:impiantiObj[i].data} );
+		}
+			
+		setupChart();
+		
+	} else {
+		//nelle chiamate successive effettuo l'update della chart		
+		chart = $('#container').highcharts();
+		chart.xAxis[0].setCategories(_startCategories);
+		for (var i=0; i<impianti.length; i++) {
+			chart.series[i].setData(impiantiObj[i].data);
+		}
+	}	
+}
+
+function format(_date) {
+	var _date = new Date(_date);
+	return dateFormat(_date, "custom");
+}	
+
+function setupChart(){	
+	
+    chart = $('#container').highcharts({
         chart: {
             type: 'line'
         },
         title: {
-            text: 'Monthly Average Temperature'
+            text: 'Temperatura impianti'
         },
         subtitle: {
-            text: 'Source: WorldClimate.com'
+            text: ''
         },
         xAxis: {
-            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            categories: _startCategories,
+            crosshair: true
         },
         yAxis: {
+            min: 0,
             title: {
-                text: 'Temperature (°C)'
+                text: 'Temperatura'
             }
+        },
+        tooltip: {
+            //headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
+            //pointFormat: '<tr><td style="color:{series.color};padding:0">{series.name}: </td>' +
+            //    '<td style="padding:0"><b>{point.y:.1f}</b></td></tr>',
+            //footerFormat: '</table>',
+            shared: true,
+            useHTML: true
         },
         plotOptions: {
-            line: {
-                dataLabels: {
-                    enabled: true
-                },
-                enableMouseTracking: false
+            column: {
+                pointPadding: 0.2,
+                borderWidth: 0
             }
         },
-        series: [{
-            name: 'Tokyo',
-            data: [7.0, 6.9, 9.5, 14.5, 18.4, 21.5, 25.2, 26.5, 23.3, 18.3, 13.9, 9.6]
-        }, {
-            name: 'London',
-            data: [3.9, 4.2, 5.7, 8.5, 11.9, 15.2, 17.0, 16.6, 14.2, 10.3, 6.6, 4.8]
-        }]
+        series: _startSerie
     });
+}
+
+var dateFormat = function () {
+	var	token = /d{1,4}|m{1,4}|yy(?:yy)?|([HhMsTt])\1?|[LloSZ]|"[^"]*"|'[^']*'/g,
+		timezone = /\b(?:[PMCEA][SDP]T|(?:Pacific|Mountain|Central|Eastern|Atlantic) (?:Standard|Daylight|Prevailing) Time|(?:GMT|UTC)(?:[-+]\d{4})?)\b/g,
+		timezoneClip = /[^-+\dA-Z]/g,
+		pad = function (val, len) {
+			val = String(val);
+			len = len || 2;
+			while (val.length < len) val = "0" + val;
+			return val;
+		};
+
+	// Regexes and supporting functions are cached through closure
+	return function (date, mask, utc) {
+		var dF = dateFormat;
+
+		// You can't provide utc if you skip other args (use the "UTC:" mask prefix)
+		if (arguments.length == 1 && Object.prototype.toString.call(date) == "[object String]" && !/\d/.test(date)) {
+			mask = date;
+			date = undefined;
+		}
+
+		// Passing date through Date applies Date.parse, if necessary
+		date = date ? new Date(date) : new Date;
+		if (isNaN(date)) throw SyntaxError("invalid date");
+
+		mask = String(dF.masks[mask] || mask || dF.masks["default"]);
+
+		// Allow setting the utc argument via the mask
+		if (mask.slice(0, 4) == "UTC:") {
+			mask = mask.slice(4);
+			utc = true;
+		}
+
+		var	_ = utc ? "getUTC" : "get",
+			d = date[_ + "Date"](),
+			D = date[_ + "Day"](),
+			m = date[_ + "Month"](),
+			y = date[_ + "FullYear"](),
+			H = date[_ + "Hours"](),
+			M = date[_ + "Minutes"](),
+			s = date[_ + "Seconds"](),
+			L = date[_ + "Milliseconds"](),
+			o = utc ? 0 : date.getTimezoneOffset(),
+			flags = {
+				d:    d,
+				dd:   pad(d),
+				ddd:  dF.i18n.dayNames[D],
+				dddd: dF.i18n.dayNames[D + 7],
+				m:    m + 1,
+				mm:   pad(m + 1),
+				mmm:  dF.i18n.monthNames[m],
+				mmmm: dF.i18n.monthNames[m + 12],
+				yy:   String(y).slice(2),
+				yyyy: y,
+				h:    H % 12 || 12,
+				hh:   pad(H % 12 || 12),
+				H:    H,
+				HH:   pad(H),
+				M:    M,
+				MM:   pad(M),
+				s:    s,
+				ss:   pad(s),
+				l:    pad(L, 3),
+				L:    pad(L > 99 ? Math.round(L / 10) : L),
+				t:    H < 12 ? "a"  : "p",
+				tt:   H < 12 ? "am" : "pm",
+				T:    H < 12 ? "A"  : "P",
+				TT:   H < 12 ? "AM" : "PM",
+				Z:    utc ? "UTC" : (String(date).match(timezone) || [""]).pop().replace(timezoneClip, ""),
+				o:    (o > 0 ? "-" : "+") + pad(Math.floor(Math.abs(o) / 60) * 100 + Math.abs(o) % 60, 4),
+				S:    ["th", "st", "nd", "rd"][d % 10 > 3 ? 0 : (d % 100 - d % 10 != 10) * d % 10]
+			};
+
+		return mask.replace(token, function ($0) {
+			return $0 in flags ? flags[$0] : $0.slice(1, $0.length - 1);
+		});
+	};
+}();
+
+// Some common format strings
+dateFormat.masks = {
+	"default":      "ddd mmm dd yyyy HH:MM:ss",
+	shortDate:      "m/d/yy",
+	mediumDate:     "mmm d, yyyy",
+	longDate:       "mmmm d, yyyy",
+	fullDate:       "dddd, mmmm d, yyyy",
+	shortTime:      "h:MM TT",
+	mediumTime:     "h:MM:ss TT",
+	longTime:       "h:MM:ss TT Z",
+	isoDate:        "yyyy-mm-dd",
+	isoTime:        "HH:MM:ss",
+	isoDateTime:    "yyyy-mm-dd'T'HH:MM:ss",
+	isoUtcDateTime: "UTC:yyyy-mm-dd'T'HH:MM:ss'Z'",
+	custom: "HH:MM:ss"
+};
+
+// Internationalization strings
+dateFormat.i18n = {
+	dayNames: [
+		"Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab",
+		"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+	],
+	monthNames: [
+		"Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic",
+		"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
+	]
+};
+
+// For convenience...
+Date.prototype.format = function (mask, utc) {
+	return dateFormat(this, mask, utc);
+};
+
+
+
+$(function(){	
+	// refresh page date in milliseconds
+	setInterval(loadData,5000);
 });
+
+
+// -------------------------------------	
+
 </script>
 
-
-</body>
-
-</html>

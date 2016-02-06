@@ -1,0 +1,22 @@
+{
+  "name": "public",
+  "homepage": "https://github.com/dinolupo/nodejs-mysql-highcharts",
+  "authors": [
+    "Dino Lupo <dino.lupo@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "moduleType": [],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "^2.2.0",
+    "highcharts": "^4.2.2"
+  }
+}
