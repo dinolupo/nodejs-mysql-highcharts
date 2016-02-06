@@ -1,0 +1,3 @@
+node_modules
+mysql-vagrant/.vagrant/
+public/bower_components
